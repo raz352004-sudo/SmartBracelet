@@ -16,6 +16,11 @@
 
   * { box-sizing: border-box; }
 
+  html, body {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   body {
     margin: 0;
     font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -23,6 +28,8 @@
     color: var(--text);
     line-height: 1.6;
   }
+
+  img { max-width: 100%; }
 
   header.hero {
     background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
@@ -268,6 +275,34 @@
     padding: 20px;
     font-size: 0.9rem;
   }
+
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-wrap table { margin: 0; }
+
+  @media (max-width: 600px) {
+    header.hero { padding: 40px 16px 64px; }
+    header.hero h1 { font-size: 1.9rem; }
+    header.hero p { font-size: 1rem; }
+
+    main { padding: 0 12px 48px; }
+
+    section.card { padding: 22px 18px; }
+    section.card h2 { font-size: 1.25rem; }
+
+    .arch-box { min-width: 0; width: 100%; }
+    .arch-row { flex-direction: column; align-items: stretch; }
+
+    table.compare, table.parts { font-size: 0.82rem; }
+    table.compare th, table.compare td,
+    table.parts th, table.parts td { padding: 8px; }
+
+    .flow .step { min-width: 100px; padding: 10px 12px; font-size: 0.9rem; }
+  }
 </style>
 </head>
 <body>
@@ -377,6 +412,7 @@
 
   <section class="card">
     <h2>📊 השוואה לפתרונות קיימים בשוק</h2>
+    <div class="table-wrap">
     <table class="compare">
       <thead>
         <tr>
@@ -425,6 +461,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     <p class="cost-note">הערכת מחירים גסה להמחשה בלבד, מבוססת על מחירי שוק טיפוסיים.</p>
   </section>
 
