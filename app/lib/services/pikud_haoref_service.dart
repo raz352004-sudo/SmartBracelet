@@ -19,6 +19,10 @@ class PikudHaorefService extends ChangeNotifier {
   bool isPolling = false;
   String? lastError;
 
+  /// שם היישוב שמסנן את ההתראות — null/ריק = להגיב לכל התרעה בארץ.
+  /// ההשוואה היא "מכיל" (contains), כדי להתמודד עם שמות כמו "תל אביב - מרכז".
+  String? targetCity;
+
   void start() {
     if (isPolling) return;
     isPolling = true;
@@ -53,14 +57,29 @@ class PikudHaorefService extends ChangeNotifier {
 
       final data = jsonDecode(body) as Map<String, dynamic>;
       final id = data['notificationId']?.toString() ?? data['time']?.toString();
-      if (id != null && id != _lastNotificationId) {
-        _lastNotificationId = id;
+      if (id == null || id == _lastNotificationId) return;
+      _lastNotificationId = id;
+
+      if (_matchesCityFilter(data)) {
         onAlarm();
       }
     } catch (e) {
       lastError = e.toString();
       notifyListeners();
     }
+  }
+
+  /// מחלץ את רשימת היישובים מההתראה (שם השדה משתנה בין גרסאות ה-API הלא-רשמי)
+  /// ובודק אם היישוב שנבחר בהגדרות נמצא בה. בלי סינון מוגדר — תמיד true.
+  bool _matchesCityFilter(Map<String, dynamic> data) {
+    final city = targetCity;
+    if (city == null || city.isEmpty) return true;
+
+    final rawCities = data['cities'] ?? data['data'];
+    if (rawCities is! List) return true; // אין מידע על יישובים — לא חוסמים התרעה
+
+    final cities = rawCities.map((c) => c.toString());
+    return cities.any((c) => c.contains(city) || city.contains(c));
   }
 
   @override

@@ -13,6 +13,7 @@ const configurableAlertTypes = [
 class NotificationSettingsService extends ChangeNotifier {
   static const _prefsPrefix = 'notify_enabled_';
   static const _intensityPrefsKey = 'vibration_intensity_percent';
+  static const _cityFilterPrefsKey = 'pikud_haoref_city_filter';
   static const defaultVibrationIntensity = 80;
 
   final Map<AlertType, bool> _enabled = {
@@ -21,6 +22,9 @@ class NotificationSettingsService extends ChangeNotifier {
 
   int vibrationIntensityPercent = defaultVibrationIntensity;
 
+  /// שם היישוב לסינון התראות פיקוד העורף — null/ריק = כל הארץ
+  String? cityFilter;
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     for (final type in configurableAlertTypes) {
@@ -28,6 +32,7 @@ class NotificationSettingsService extends ChangeNotifier {
     }
     vibrationIntensityPercent =
         prefs.getInt(_intensityPrefsKey) ?? defaultVibrationIntensity;
+    cityFilter = prefs.getString(_cityFilterPrefsKey);
     notifyListeners();
   }
 
@@ -45,5 +50,17 @@ class NotificationSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_intensityPrefsKey, vibrationIntensityPercent);
+  }
+
+  Future<void> setCityFilter(String? city) async {
+    final trimmed = city?.trim();
+    cityFilter = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    if (cityFilter == null) {
+      await prefs.remove(_cityFilterPrefsKey);
+    } else {
+      await prefs.setString(_cityFilterPrefsKey, cityFilter!);
+    }
   }
 }

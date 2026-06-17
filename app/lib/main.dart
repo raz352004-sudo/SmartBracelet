@@ -49,10 +49,16 @@ class _RootScreenState extends State<RootScreen> {
     super.initState();
     pikudHaorefService = PikudHaorefService(onAlarm: _onPikudHaorefAlarm);
     bleService.addListener(_onBleStateChange);
+    settingsService.addListener(_onSettingsChange);
     settingsService.load();
     historyService.load();
     pikudHaorefService.start();
     _requestPermissions().then((_) => bleService.tryAutoReconnect());
+  }
+
+  // מסנכרן את סינון היישוב מההגדרות לשירות פיקוד העורף
+  void _onSettingsChange() {
+    pikudHaorefService.targetCity = settingsService.cityFilter;
   }
 
   // בכל חיבור חדש לצמיד, שולח את עוצמת הרטט השמורה בהגדרות
@@ -86,6 +92,7 @@ class _RootScreenState extends State<RootScreen> {
   @override
   void dispose() {
     bleService.removeListener(_onBleStateChange);
+    settingsService.removeListener(_onSettingsChange);
     bleService.dispose();
     historyService.dispose();
     settingsService.dispose();

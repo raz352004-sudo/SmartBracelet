@@ -19,6 +19,26 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  late final TextEditingController _cityController;
+
+  @override
+  void initState() {
+    super.initState();
+    _cityController = TextEditingController(text: widget.settingsService.cityFilter ?? '');
+  }
+
+  @override
+  void dispose() {
+    _cityController.dispose();
+    super.dispose();
+  }
+
+  void _saveCityFilter() {
+    setState(() {
+      widget.settingsService.setCityFilter(_cityController.text);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = widget.settingsService;
@@ -74,6 +94,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              'סינון התראות פיקוד העורף לפי יישוב',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: TextField(
+              controller: _cityController,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                hintText: 'לדוגמה: תל אביב - יפו (השאר ריק = כל הארץ)',
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                border: const OutlineInputBorder(),
+                suffixIcon: _cityController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _cityController.clear();
+                          _saveCityFilter();
+                        },
+                      ),
+              ),
+              onSubmitted: (_) => _saveCityFilter(),
+              onEditingComplete: _saveCityFilter,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(
+              settings.cityFilter == null
+                  ? 'מגיב כרגע לכל התרעה בארץ'
+                  : 'מגיב רק להתרעות שמכילות את "${settings.cityFilter}"',
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 0.85 * 16),
             ),
           ),
         ],
