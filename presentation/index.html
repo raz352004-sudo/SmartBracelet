@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartBracelet — צמיד חכם לחירשים</title>
+<style>
+  :root {
+    --indigo: #3F51B5;
+    --indigo-dark: #2C3893;
+    --bg: #F5F6FB;
+    --card-bg: #FFFFFF;
+    --text: #1C1E2B;
+    --muted: #5B6072;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  header.hero {
+    background: linear-gradient(135deg, var(--indigo), var(--indigo-dark));
+    color: white;
+    text-align: center;
+    padding: 64px 24px 80px;
+  }
+
+  header.hero h1 {
+    font-size: 2.6rem;
+    margin: 0 0 12px;
+  }
+
+  header.hero p {
+    font-size: 1.25rem;
+    opacity: 0.92;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  main {
+    max-width: 980px;
+    margin: -48px auto 0;
+    padding: 0 24px 64px;
+  }
+
+  section.card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    padding: 36px 40px;
+    margin-bottom: 28px;
+  }
+
+  section.card h2 {
+    color: var(--indigo-dark);
+    font-size: 1.6rem;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  ul.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  ul.feature-list li {
+    padding: 10px 0;
+    border-bottom: 1px solid #ECEDF4;
+    display: flex;
+    gap: 10px;
+  }
+
+  ul.feature-list li:last-child { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    background: #ECEEFB;
+    color: var(--indigo-dark);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin: 4px 6px 4px 0;
+  }
+
+  .stage-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 720px) {
+    .stage-row { flex-direction: column; }
+  }
+
+  .stage-box {
+    flex: 1;
+    background: #F8F9FF;
+    border: 1px solid #E2E4F5;
+    border-radius: 12px;
+    padding: 20px 22px;
+  }
+
+  .stage-box h3 {
+    margin-top: 0;
+    color: var(--indigo-dark);
+  }
+
+  .stage-box.current { border-color: #C9D0F5; }
+  .stage-box.next { border-style: dashed; }
+
+  .tag-status {
+    display: inline-block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+
+  .tag-status.current { background: #D8F0DA; color: #1E7A33; }
+  .tag-status.next { background: #FCEFD0; color: #946600; }
+
+  .screenshot-wrap {
+    text-align: center;
+  }
+
+  .screenshot-wrap img {
+    max-width: 280px;
+    border-radius: 24px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.18);
+    border: 1px solid #ddd;
+  }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+    text-align: center;
+  }
+
+  .flow .step {
+    background: #F8F9FF;
+    border: 1px solid #E2E4F5;
+    border-radius: 12px;
+    padding: 14px 18px;
+    min-width: 130px;
+    font-weight: 600;
+    color: var(--indigo-dark);
+    animation: stepPulse 3.2s ease-in-out infinite;
+  }
+
+  .flow .arrow {
+    font-size: 1.4rem;
+    color: var(--muted);
+    display: inline-block;
+    animation: arrowPulse 3.2s ease-in-out infinite;
+  }
+
+  @keyframes stepPulse {
+    0%, 75%, 100% { background: #F8F9FF; box-shadow: none; transform: scale(1); }
+    8% { background: #DCE2FA; box-shadow: 0 0 0 6px rgba(63,81,181,0.15); transform: scale(1.06); }
+  }
+
+  @keyframes arrowPulse {
+    0%, 75%, 100% { color: var(--muted); transform: scale(1); }
+    8% { color: var(--indigo); transform: scale(1.4); }
+  }
+
+  table.compare, table.parts {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.95rem;
+  }
+
+  table.compare th, table.compare td,
+  table.parts th, table.parts td {
+    border: 1px solid #E5E6F2;
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  table.compare th, table.parts th {
+    background: #ECEEFB;
+    color: var(--indigo-dark);
+  }
+
+  table.compare td:first-child, table.parts td:first-child {
+    text-align: right;
+    font-weight: 600;
+  }
+
+  table.parts tfoot td {
+    font-weight: 700;
+    background: #F8F9FF;
+  }
+
+  .check { color: #1E7A33; font-weight: 700; }
+  .cross { color: #B3261E; font-weight: 700; }
+
+  .arch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 20px 0;
+  }
+
+  .arch-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  .arch-box {
+    background: #F8F9FF;
+    border: 1.5px solid #C9D0F5;
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 150px;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .arch-box strong { display: block; color: var(--indigo-dark); margin-bottom: 4px; }
+  .arch-box.peripheral { border-color: #F5D9A8; background: #FFF8EC; }
+  .arch-box.peripheral strong { color: #946600; }
+
+  .arch-down {
+    font-size: 1.3rem;
+    color: var(--muted);
+  }
+
+  .cost-note {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    padding: 20px;
+    font-size: 0.9rem;
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>SmartBracelet</h1>
+  <p>צמיד חכם לחירשים — מתריע על אירועים קריטיים בסביבה דרך רטט, אור ומסך, בזמן אמת.</p>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>🚨 הבעיה</h2>
+    <p>
+      אנשים חירשים וכבדי שמיעה לא מודעים לאירועים קריטיים שקורים בסביבתם —
+      אזעקת פיקוד העורף, פעמון דלת, או התראת גלאי פריצה. כל אלה מבוססים על
+      צליל, ולכן חוסמים אותם באופן מלא מאוכלוסייה שלא שומעת.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>💡 הפתרון</h2>
+    <p>
+      צמיד חכם שנלבש על פרק היד ומתריע באופן מיידי על כל אחד מהאירועים —
+      באמצעות <strong>רטט</strong>, <strong>LED</strong> ו<strong>מסך</strong>, כל אירוע עם דפוס התראה משלו, כך
+      שהמשתמש יכול להבחין בקלות בסוג האירוע מבלי לראות או לשמוע את המקור עצמו.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>⚙️ הטכנולוגיה</h2>
+
+    <div class="grid-2">
+      <div>
+        <h3 style="color:var(--indigo-dark)">הצמיד</h3>
+        <ul class="feature-list">
+          <li>🧠 בקר ESP32 (Bluetooth Low Energy)</li>
+          <li>🔋 סוללה נטענת</li>
+          <li>🖥️ מסך OLED להצגת פרטי האירוע</li>
+          <li>💡 LED לאינדיקציה ויזואלית</li>
+          <li>📳 מנוע רטט</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--indigo-dark)">האפליקציה</h3>
+        <ul class="feature-list">
+          <li>📱 אפליקציית Flutter — אנדרואיד ו-iPhone, מאותו קוד</li>
+          <li>🔗 התחברות לצמיד דרך BLE</li>
+          <li>📡 חיבור מובנה ל-API של פיקוד העורף</li>
+          <li>🔔 כפתורי בדיקה ידניים לדלת ולגלאי פריצה</li>
+          <li>📜 היסטוריית התראות + הגדרות התאמה אישית</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="step" style="animation-delay:0s">📡 אירוע<br>(אזעקה / דלת / פריצה)</div>
+      <div class="arrow" style="animation-delay:0.4s">←</div>
+      <div class="step" style="animation-delay:0.8s">📱 אפליקציה</div>
+      <div class="arrow" style="animation-delay:1.2s">←</div>
+      <div class="step" style="animation-delay:1.6s">🔗 BLE</div>
+      <div class="arrow" style="animation-delay:2.0s">←</div>
+      <div class="step" style="animation-delay:2.4s">⌚ צמיד<br>(רטט + LED + מסך)</div>
+    </div>
+
+    <div>
+      <span class="badge">Flutter</span>
+      <span class="badge">Dart</span>
+      <span class="badge">ESP32</span>
+      <span class="badge">BLE</span>
+      <span class="badge">OLED</span>
+      <span class="badge">iOS</span>
+      <span class="badge">Android</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>🏗️ ארכיטקטורת המערכת</h2>
+    <div class="arch">
+      <div class="arch-row">
+        <div class="arch-box">📡 API פיקוד העורף</div>
+        <div class="arch-box">🔔 כפתורי בדיקה ידניים<br>(דלת / פריצה)</div>
+      </div>
+      <div class="arch-down">↓</div>
+      <div class="arch-row">
+        <div class="arch-box" style="border-color:var(--indigo); min-width:260px;">
+          <strong>📱 אפליקציית Flutter (BLE Central)</strong>
+          פולינג התראות · היסטוריה מקומית · הגדרות (עוצמת רטט, סוגי התראה)
+        </div>
+      </div>
+      <div class="arch-down">↓ BLE ↓</div>
+      <div class="arch-row">
+        <div class="arch-box peripheral" style="min-width:260px;">
+          <strong>⌚ ESP32 (BLE Peripheral)</strong>
+          קליטת קוד התראה · בקרת דפוסים · PWM לעוצמת רטט
+        </div>
+      </div>
+      <div class="arch-down">↓</div>
+      <div class="arch-row">
+        <div class="arch-box">📳 מנוע רטט</div>
+        <div class="arch-box">💡 LED</div>
+        <div class="arch-box">🖥️ מסך OLED</div>
+        <div class="arch-box">🔋 סוללה + טעינה</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>📊 השוואה לפתרונות קיימים בשוק</h2>
+    <table class="compare">
+      <thead>
+        <tr>
+          <th>קריטריון</th>
+          <th>SmartBracelet</th>
+          <th>שעון חכם רגיל<br><span style="font-weight:400">(Apple Watch / Fitbit)</span></th>
+          <th>פעמון מהבהב ייעודי<br><span style="font-weight:400">לחירשים</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>חיבור ישיר ל-API פיקוד העורף</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>קוד התראה ייעודי לכל סוג אירוע</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span> (וייברציה גנרית)</td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>גלאי פריצה / פעמון דלת מובנה</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="check">✓</span> (פעמון בלבד)</td>
+        </tr>
+        <tr>
+          <td>מסך תצוגה ייעודי לאירוע</td>
+          <td><span class="check">✓</span> (OLED)</td>
+          <td><span class="check">✓</span> (כללי)</td>
+          <td><span class="cross">✗</span></td>
+        </tr>
+        <tr>
+          <td>מחיר משוער למשתמש</td>
+          <td><strong>~₪150–250</strong></td>
+          <td>₪800–₪3,000+</td>
+          <td>₪200–400</td>
+        </tr>
+        <tr>
+          <td>מותאם במיוחד לקהילת החירשים</td>
+          <td><span class="check">✓</span></td>
+          <td><span class="cross">✗</span></td>
+          <td><span class="check">✓</span> (חלקית)</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="cost-note">הערכת מחירים גסה להמחשה בלבד, מבוססת על מחירי שוק טיפוסיים.</p>
+  </section>
+
+  <section class="card">
+    <h2>🌍 שוק יעד ומודל עסקי</h2>
+    <div class="grid-2">
+      <div>
+        <h3 style="color:var(--indigo-dark)">שוק היעד</h3>
+        <ul class="feature-list">
+          <li>👥 כ-700,000 חירשים וכבדי שמיעה בישראל</li>
+          <li>🤟 מתוכם כ-20,000 דוברי שפת הסימנים — האוכלוסייה שהכי נפגעת מאי-נגישות לאזעקות קוליות</li>
+          <li>🏫 מוסדות חינוך ודיור לחירשים כלקוחות פוטנציאליים בהיקף גדול</li>
+          <li>🌐 פוטנציאל הרחבה למדינות נוספות עם מערכות אזעקה ציבוריות (פיקוד אזרחי, התרעות חירום)</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="color:var(--indigo-dark)">מודל עסקי</h3>
+        <ul class="feature-list">
+          <li>🛒 מכירה ישירה לצרכן (D2C) — אתר/חנות מקוונת</li>
+          <li>🤝 שיתופי פעולה עם עמותות וארגוני חירשים בישראל</li>
+          <li>🏛️ מכירה למוסדות (בתי ספר, מעונות דיור) בהיקפים</li>
+          <li>📋 בחינת סבסוד/השתתפות ממשרד הרווחה כ"אמצעי עזר"</li>
+          <li>🔄 הכנסה נוספת אפשרית: מנוי לתחזוקה ועדכוני תוכנה</li>
+        </ul>
+      </div>
+    </div>
+    <p class="cost-note">נתוני אוכלוסייה: הלשכה המרכזית לסטטיסטיקה (הלמ"ס), 2023.</p>
+  </section>
+
+  <section class="card">
+    <h2>🗺️ שלבי הפרויקט וציר זמן</h2>
+    <div class="stage-row">
+      <div class="stage-box current">
+        <span class="tag-status current">שלב נוכחי</span>
+        <h3>בניית פרוטוטייפ</h3>
+        <ul class="feature-list">
+          <li>🔌 סכמה חשמלית</li>
+          <li>🧩 תכנון PCB</li>
+          <li>💻 כתיבת קוד ESP32</li>
+        </ul>
+      </div>
+      <div class="stage-box next">
+        <span class="tag-status next">שלב הבא</span>
+        <h3>אפליקציה ועיצוב מוצר</h3>
+        <ul class="feature-list">
+          <li>📱 אפליקציית Flutter לאנדרואיד ואייפון</li>
+          <li>🎨 עיצוב מוצר סופי לצמיד</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="stage-row" style="margin-top:20px; flex-wrap:wrap;">
+      <div class="stage-box" style="flex:1 1 150px;">
+        <span class="tag-status current">Q3 2026</span>
+        <h3 style="font-size:1rem;">סיום פרוטוטייפ</h3>
+        <p style="font-size:0.85rem; margin:0;">סכמה, PCB, קוד ESP32</p>
+      </div>
+      <div class="stage-box next" style="flex:1 1 150px;">
+        <span class="tag-status next">Q4 2026</span>
+        <h3 style="font-size:1rem;">אפליקציה + עיצוב</h3>
+        <p style="font-size:0.85rem; margin:0;">Flutter מלא, עיצוב תעשייתי</p>
+      </div>
+      <div class="stage-box next" style="flex:1 1 150px;">
+        <span class="tag-status next">Q1 2027</span>
+        <h3 style="font-size:1rem;">פיילוט</h3>
+        <p style="font-size:0.85rem; margin:0;">בדיקות עם קהילת החירשים</p>
+      </div>
+      <div class="stage-box next" style="flex:1 1 150px;">
+        <span class="tag-status next">Q2 2027</span>
+        <h3 style="font-size:1rem;">תקינה וייצור</h3>
+        <p style="font-size:0.85rem; margin:0;">CE/FCC, הכנת קו ייצור</p>
+      </div>
+      <div class="stage-box next" style="flex:1 1 150px;">
+        <span class="tag-status next">Q3 2027</span>
+        <h3 style="font-size:1rem;">השקה</h3>
+        <p style="font-size:0.85rem; margin:0;">השקה מסחרית ראשונית</p>
+      </div>
+    </div>
+    <p class="cost-note">לוח הזמנים משוער ואינדיקטיבי, ניתן להתאמה לפי קצב הגיוס וההתקדמות בפועל.</p>
+  </section>
+
+  <section class="card">
+    <h2>💰 רשימת חלקים ועלות ייצור משוערת</h2>
+    <table class="parts">
+      <thead>
+        <tr>
+          <th>חלק</th>
+          <th>תפקיד</th>
+          <th>מחיר ליחידה (פרוטוטייפ)</th>
+          <th>מחיר ליחידה (ייצור בכמות)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>בקר ESP32 (WROOM-32)</td>
+          <td>BLE + לוגיקה</td>
+          <td>$4.00</td>
+          <td>$1.80</td>
+        </tr>
+        <tr>
+          <td>מסך OLED ‎0.96" I2C (SSD1306)</td>
+          <td>תצוגת אירוע</td>
+          <td>$2.50</td>
+          <td>$1.20</td>
+        </tr>
+        <tr>
+          <td>מנוע רטט (Coin Vibration Motor)</td>
+          <td>התראה פיזית</td>
+          <td>$1.20</td>
+          <td>$0.50</td>
+        </tr>
+        <tr>
+          <td>סוללת LiPo ‎300mAh</td>
+          <td>אנרגיה</td>
+          <td>$3.00</td>
+          <td>$1.50</td>
+        </tr>
+        <tr>
+          <td>מעגל טעינה (TP4056)</td>
+          <td>טעינת הסוללה</td>
+          <td>$1.20</td>
+          <td>$0.40</td>
+        </tr>
+        <tr>
+          <td>LED + נגד</td>
+          <td>אינדיקציה ויזואלית</td>
+          <td>$0.20</td>
+          <td>$0.05</td>
+        </tr>
+        <tr>
+          <td>PCB מותאם</td>
+          <td>חיווט והרכבה</td>
+          <td>$2.00</td>
+          <td>$0.80</td>
+        </tr>
+        <tr>
+          <td>מארז + רצועה</td>
+          <td>לבישה</td>
+          <td>$1.50</td>
+          <td>$0.60</td>
+        </tr>
+        <tr>
+          <td>כבלים, מחברים, שונות</td>
+          <td>הרכבה</td>
+          <td>$1.50</td>
+          <td>$0.50</td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">סה"כ עלות חלקים ליחידה</td>
+          <td>~$17.10</td>
+          <td>~$7.35</td>
+        </tr>
+      </tfoot>
+    </table>
+    <p class="cost-note">
+      מחירים מבוססים על הערכות טיפוסיות מ-AliExpress (כמות בודדת לפרוטוטייפ, מול הזמנה
+      בכמות גדולה לייצור). לא כולל עלויות פיתוח, תכנון PCB, אישורי תקינה (CE/FCC) ועבודת הרכבה.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>👥 הצוות</h2>
+    <div class="grid-2">
+      <div class="stage-box">
+        <h3 style="margin-top:0;">💻 פיתוח אפליקציה ותכנות</h3>
+        <p style="color:var(--muted); margin:0;">להשלמה</p>
+      </div>
+      <div class="stage-box">
+        <h3 style="margin-top:0;">🔌 הנדסת אלקטרוניקה ו-Firmware</h3>
+        <p style="color:var(--muted); margin:0;">להשלמה</p>
+      </div>
+      <div class="stage-box">
+        <h3 style="margin-top:0;">🎨 עיצוב תעשייתי</h3>
+        <p style="color:var(--muted); margin:0;">להשלמה</p>
+      </div>
+      <div class="stage-box">
+        <h3 style="margin-top:0;">🤟 ייעוץ נגישות מקהילת החירשים</h3>
+        <p style="color:var(--muted); margin:0;">להשלמה — קריטי לאימות שהפתרון מתאים בפועל לצרכי הקהילה</p>
+      </div>
+    </div>
+    <p class="cost-note">תפקידים מוצעים להשלמת הצוות — יש להחליף בשמות ורקע בפועל לפני הצגה רשמית.</p>
+  </section>
+
+  <section class="card">
+    <h2>📲 תצוגה מקדימה של האפליקציה</h2>
+    <div class="screenshot-wrap">
+      <img src="images/screenshot_home.png" alt="מסך הבית של אפליקציית SmartBracelet">
+      <p style="color:var(--muted); margin-top:14px;">מסך הבית של האפליקציה — סטטוס חיבור לצמיד וכפתורי בדיקה ידניים</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  פרויקט SmartBracelet — הצעת ייעול לקהילת החירשים
+</footer>
+
+</body>
+</html>
