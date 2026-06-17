@@ -18,7 +18,12 @@
 - קודי BLE: `A`=אזעקה, `D`=דלת, `I`=פריצה, `T`=בדיקה. ה-UUIDs מוגדרים פעמיים —
   בקושחה (`esp32_ble.ino`) ובאפליקציה (`lib/services/bracelet_ble_service.dart`) — **חייבים להישאר זהים**.
 - פיקוד העורף: אין API רשמי. משתמשים ב-`https://www.oref.org.il/WarningMessages/alert/alerts.json`,
-  פולינג כל 5 שניות, דורש headers (`Referer`, `X-Requested-With`), **חסום ל-IP ישראלי בלבד**.
+  פולינג כל 5 שניות, דורש headers (`Referer`, `X-Requested-With`). **אומת ב-2026-06-17**: ה-endpoint
+  הזה למעשה *לא* היה חסום מהמכונה הזו (כן קיבלנו 200). מבנה התשובה האמיתי (מאומת מול כמה מימושים
+  פתוחים בקוד פתוח, ולא רק ניחוש): `{"id": ..., "cat": ..., "title": ..., "data": [...]}` — שדה
+  היישובים הוא `data` (לא `cities`), ושדה ה-ID הוא `id` (לא `notificationId`). כשאין אזעקה פעילה
+  השרת מחזיר רק BOM+CRLF (`EF BB BF 0D 0A`), לא JSON ריק — הקוד מטפל בזה במפורש. ה-History endpoint
+  (`.../History/AlertsHistory.json`) חסום (403) מהמכונה הזו, גם אם הראשי לא.
 - flutter_blue_plus גרסה 2.3.8: `BluetoothDevice.connect()` דורש פרמטר `license:` (למשל `License.nonprofit`).
 - BLE bonding ("Just Works", `ESP_IO_CAP_NONE`) ותמיכת OLED בקושחה **לא נבדקו על חומרה אמיתית** —
   המשתמש מתכנן לחבר ESP32 פיזי ולבדוק (פינים: רטט=25, LED אדום=26/כחול=27/ירוק=14, סוללה ADC=34).

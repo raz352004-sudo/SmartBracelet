@@ -48,7 +48,8 @@ class PikudHaorefService extends ChangeNotifier {
         },
       );
 
-      final body = response.body.trim();
+      // כשאין אזעקה פעילה, השרת מחזיר רק BOM (﻿) או גוף ריק — לא JSON תקין
+      final body = response.body.replaceFirst('﻿', '').trim();
       if (lastError != null) {
         lastError = null;
         notifyListeners();
@@ -56,7 +57,8 @@ class PikudHaorefService extends ChangeNotifier {
       if (body.isEmpty || body == '{}') return; // אין אזעקה פעילה כרגע
 
       final data = jsonDecode(body) as Map<String, dynamic>;
-      final id = data['notificationId']?.toString() ?? data['time']?.toString();
+      // מבנה אמיתי שאומת מול מימושים פתוחים: {"id": ..., "cat": ..., "title": ..., "data": [...]}
+      final id = data['id']?.toString();
       if (id == null || id == _lastNotificationId) return;
       _lastNotificationId = id;
 
@@ -69,18 +71,21 @@ class PikudHaorefService extends ChangeNotifier {
     }
   }
 
-  /// מחלץ את רשימת היישובים מההתראה (שם השדה משתנה בין גרסאות ה-API הלא-רשמי)
+  /// מחלץ את רשימת היישובים מההתראה (שדה "data" במבנה האמיתי של ה-API)
   /// ובודק אם היישוב שנבחר בהגדרות נמצא בה. בלי סינון מוגדר — תמיד true.
   bool _matchesCityFilter(Map<String, dynamic> data) {
     final city = targetCity;
     if (city == null || city.isEmpty) return true;
 
-    final rawCities = data['cities'] ?? data['data'];
+    final rawCities = data['data'];
     if (rawCities is! List) return true; // אין מידע על יישובים — לא חוסמים התרעה
 
     final cities = rawCities.map((c) => c.toString());
     return cities.any((c) => c.contains(city) || city.contains(c));
   }
+
+  @visibleForTesting
+  bool matchesCityFilterForTest(Map<String, dynamic> data) => _matchesCityFilter(data);
 
   @override
   void dispose() {
