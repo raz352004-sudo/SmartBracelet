@@ -42,8 +42,8 @@
 #define OLED_SDA_PIN       21
 #define OLED_SCL_PIN       22
 
-// פין ADC למדידת מתח הסוללה — מחלק מתח על קו הסוללה
-#define BATTERY_ADC_PIN   34
+// פין ADC למדידת מתח הסוללה — מחלק מתח R3(100K)+R5(100K) 1:1 על קו הסוללה
+#define BATTERY_ADC_PIN   35
 #define BATTERY_MAX_MV    4200
 #define BATTERY_MIN_MV    3300
 #define BATTERY_CUTOFF_MV 3200  // מתחת לזה — כיבוי אוטומטי להגנה על הסוללה
