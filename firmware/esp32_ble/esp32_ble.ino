@@ -2,13 +2,15 @@
 // מקבל פקודות BLE מהאפליקציה ומפעיל ישירות מנוע רטט + LED + מסך OLED על הצמיד
 // (אין STM32 — ה-ESP32 שולט בפלטים בעצמו).
 //
+// תואם לסכמה החשמלית ב-EasyEDA (2026-06-17): ESP32-WROOM-32, TP4056, LiPo 2000mAh,
+// MOSFET AO3407 לכיבוי אוטומטי, OLED 0.96" I2C, LED אדום בודד, רטט PWM, כפתור הפעלה.
+//
 // ספריות נדרשות (Arduino Library Manager):
 //   - "Adafruit SSD1306"
 //   - "Adafruit GFX Library"
 //   - "Adafruit BusIO" (תלות של שתי הספריות הקודמות)
 //
-// הערה: תמיכת ה-OLED ואימות ה-BLE bonding לא נבדקו על חומרה אמיתית —
-// יש לאמת ולכוונן (כתובת I2C, פיני SDA/SCL) על הצמיד הפיזי.
+// הערה: שום דבר כאן לא נבדק עדיין על חומרה אמיתית — יש לאמת ולכוונן בפועל.
 
 #include <BLEDevice.h>
 #include <BLEServer.h>
@@ -26,34 +28,42 @@
 #define INTENSITY_CHAR_UUID  "d64d880c-12ba-417c-9dfb-8d8683c3c772"  // Write: עוצמת רטט 0-100
 
 // ── קודי התראה שמתקבלים מהאפליקציה ──
-#define CODE_ALARM      'A'   // אזעקת פיקוד העורף — רטט חזק רציף + LED אדום קבוע
-#define CODE_DOOR       'D'   // פעמון דלת         — רטט קצר      + LED כחול קבוע
-#define CODE_INTRUSION  'I'   // גלאי פריצה        — רטט רציף     + LED אדום מהבהב
-#define CODE_TEST       'T'   // בדיקה              — רטט קצר      + LED ירוק קבוע
+// LED בודד (לא RGB) — ההבחנה בין סוגי האירועים היא לפי קצב ההבהוב, לא צבע
+#define CODE_ALARM      'A'   // אזעקת פיקוד העורף — רטט חזק רציף + LED קבוע
+#define CODE_DOOR       'D'   // פעמון דלת         — רטט קצר      + הבהוב יחיד
+#define CODE_INTRUSION  'I'   // גלאי פריצה        — רטט רציף     + הבהוב מהיר
+#define CODE_TEST       'T'   // בדיקה              — רטט קצר      + הבהוב כפול
 
-// ── פיני יציאה — התאם לחיווט בפועל על הצמיד ──
-#define VIBRATION_PIN   25
-#define LED_RED_PIN     26
-#define LED_BLUE_PIN    27
-#define LED_GREEN_PIN   14
+// ── פיני יציאה — לפי הסכמה החשמלית ב-EasyEDA ──
+#define VIBRATION_PIN     4    // PWM
+#define LED_PIN           5    // LED אדום בודד
+#define POWER_BUTTON_PIN  15   // כפתור הפעלה / יציאה מ-Deep Sleep
+#define MOSFET_PIN        32   // שליטה ב-AO3407: HIGH = מסך OLED מקבל מתח, LOW = כבוי
+#define OLED_SDA_PIN       21
+#define OLED_SCL_PIN       22
 
-// פין ADC למדידת מתח הסוללה דרך מחלק מתח — התאם לחיווט בפועל
+// פין ADC למדידת מתח הסוללה — מחלק מתח על קו הסוללה
 #define BATTERY_ADC_PIN   34
 #define BATTERY_MAX_MV    4200
 #define BATTERY_MIN_MV    3300
+#define BATTERY_CUTOFF_MV 3200  // מתחת לזה — כיבוי אוטומטי להגנה על הסוללה
 
 // משכי זמן לכל דפוס (אפשר לכוונן)
 #define DURATION_ALARM_MS      5000
 #define DURATION_DOOR_MS        500
 #define DURATION_INTRUSION_MS  8000
-#define DURATION_TEST_MS        300
-#define BLINK_INTERVAL_MS       200   // קצב הבהוב ה-LED באזעקת פריצה
+#define DURATION_TEST_MS        600
+#define BLINK_INTERVAL_MS       150   // קצב הבהוב מהיר (גלאי פריצה)
+#define DOUBLE_BLINK_GAP_MS     150   // המרווח בין שני ההבהובים בדפוס הבדיקה
+
+// כמה זמן בלי חיבור BLE ובלי דפוס פעיל לפני שנכנסים ל-Deep Sleep
+#define IDLE_SLEEP_TIMEOUT_MS  (2UL * 60UL * 1000UL)
 
 // PWM למנוע הרטט (ESP32 Arduino core 3.x — API מבוסס פין, לא ערוץ)
 #define VIBRATION_PWM_FREQ_HZ    5000
 #define VIBRATION_PWM_RESOLUTION 8     // 0-255
 
-// ── מסך OLED (SSD1306, I2C) — מחובר ל-SDA/SCL הסטנדרטיים של הבורד ──
+// ── מסך OLED (SSD1306, I2C) ──
 #define OLED_WIDTH    128
 #define OLED_HEIGHT   64
 #define OLED_RESET    -1
@@ -71,6 +81,9 @@ bool                deviceConnected = false;
 
 // עוצמת רטט נוכחית, 0-100% — נשלטת מההגדרות באפליקציה
 uint8_t vibrationIntensityPercent = 80;
+
+// זמן הפעולה האחרונה (חיבור/אירוע) — לקביעה מתי להיכנס ל-Deep Sleep
+unsigned long lastActivityMs = 0;
 
 void setVibrationOutput(bool on) {
   uint8_t duty = on ? (uint8_t)((uint16_t)vibrationIntensityPercent * 255 / 100) : 0;
@@ -105,54 +118,54 @@ void showEventScreen(const char* title) {
 
 // ── מצב הדפוס הפעיל כרגע ──
 enum Pattern { PATTERN_NONE, PATTERN_ALARM, PATTERN_DOOR, PATTERN_INTRUSION, PATTERN_TEST };
-Pattern        activePattern   = PATTERN_NONE;
-unsigned long  patternStartMs  = 0;
-unsigned long  lastBlinkMs     = 0;
-bool           blinkOn         = false;
+Pattern        activePattern    = PATTERN_NONE;
+unsigned long  patternStartMs   = 0;
+unsigned long  lastBlinkMs      = 0;
+bool           ledOn            = false;
+uint8_t        doubleBlinkCount = 0;  // לדפוס הבדיקה (שני הבהובים)
 
 // ─────────────────────────────────────────
 void allOutputsOff() {
   setVibrationOutput(false);
-  digitalWrite(LED_RED_PIN, LOW);
-  digitalWrite(LED_BLUE_PIN, LOW);
-  digitalWrite(LED_GREEN_PIN, LOW);
+  digitalWrite(LED_PIN, LOW);
 }
 
 void startPattern(char code) {
   allOutputsOff();
   patternStartMs = millis();
   lastBlinkMs = patternStartMs;
-  blinkOn = true;
+  ledOn = true;
+  doubleBlinkCount = 0;
 
   switch (code) {
     case CODE_ALARM:
       activePattern = PATTERN_ALARM;
       setVibrationOutput(true);
-      digitalWrite(LED_RED_PIN, HIGH);
+      digitalWrite(LED_PIN, HIGH);
       showEventScreen("ALARM!");
       break;
     case CODE_DOOR:
       activePattern = PATTERN_DOOR;
       setVibrationOutput(true);
-      digitalWrite(LED_BLUE_PIN, HIGH);
+      digitalWrite(LED_PIN, HIGH);
       showEventScreen("DOOR");
       break;
     case CODE_INTRUSION:
       activePattern = PATTERN_INTRUSION;
       setVibrationOutput(true);
-      digitalWrite(LED_RED_PIN, HIGH);
+      digitalWrite(LED_PIN, HIGH);
       showEventScreen("INTRUSION");
       break;
     case CODE_TEST:
       activePattern = PATTERN_TEST;
       setVibrationOutput(true);
-      digitalWrite(LED_GREEN_PIN, HIGH);
+      digitalWrite(LED_PIN, HIGH);
       showEventScreen("TEST");
       break;
   }
 }
 
-// מטפל בדפוס הפעיל: הבהוב ל-INTRUSION, וכיבוי אוטומטי בסוף משך הזמן
+// מטפל בדפוס הפעיל: הבהוב מהיר לגלאי פריצה, הבהוב כפול לבדיקה, וכיבוי אוטומטי בסוף משך הזמן
 void updateActivePattern() {
   if (activePattern == PATTERN_NONE) return;
 
@@ -174,9 +187,16 @@ void updateActivePattern() {
   }
 
   if (activePattern == PATTERN_INTRUSION && millis() - lastBlinkMs >= BLINK_INTERVAL_MS) {
-    blinkOn = !blinkOn;
-    digitalWrite(LED_RED_PIN, blinkOn ? HIGH : LOW);
+    ledOn = !ledOn;
+    digitalWrite(LED_PIN, ledOn ? HIGH : LOW);
     lastBlinkMs = millis();
+  } else if (activePattern == PATTERN_TEST &&
+             doubleBlinkCount < 2 &&
+             millis() - lastBlinkMs >= DOUBLE_BLINK_GAP_MS) {
+    ledOn = !ledOn;
+    digitalWrite(LED_PIN, ledOn ? HIGH : LOW);
+    lastBlinkMs = millis();
+    if (!ledOn) doubleBlinkCount++;
   }
 }
 
@@ -184,10 +204,12 @@ void updateActivePattern() {
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer* server) override {
     deviceConnected = true;
+    lastActivityMs = millis();
     showIdleScreen();
   }
   void onDisconnect(BLEServer* server) override {
     deviceConnected = false;
+    lastActivityMs = millis();
     showIdleScreen();
     BLEDevice::startAdvertising();  // חזרה לפרסום כדי שהאפליקציה תוכל להתחבר מחדש
   }
@@ -202,6 +224,7 @@ class CommandCallbacks : public BLECharacteristicCallbacks {
     char code = value[0];
     if (code == CODE_ALARM || code == CODE_DOOR ||
         code == CODE_INTRUSION || code == CODE_TEST) {
+      lastActivityMs = millis();
       startPattern(code);
     }
   }
@@ -220,24 +243,55 @@ class IntensityCallbacks : public BLECharacteristicCallbacks {
 };
 
 // ─────────────────────────────────────────
-uint8_t readBatteryPercent() {
+uint16_t readBatteryMv() {
   int raw = analogRead(BATTERY_ADC_PIN);
   // ESP32 ADC: 0-4095 = 0-3.3V. הכפלה ב-2 מתאימה למחלק מתח 1:1 — התאם לחיווט שלך
-  uint32_t mv = (uint32_t)raw * 3300 / 4095 * 2;
+  return (uint16_t)((uint32_t)raw * 3300 / 4095 * 2);
+}
+
+uint8_t readBatteryPercent() {
+  uint16_t mv = readBatteryMv();
   if (mv >= BATTERY_MAX_MV) return 100;
   if (mv <= BATTERY_MIN_MV) return 0;
   return (uint8_t)((mv - BATTERY_MIN_MV) * 100 / (BATTERY_MAX_MV - BATTERY_MIN_MV));
 }
 
+// כשהסוללה מתחת לסף הקריטי: מכבים את ה-MOSFET (מנתקים מתח מהמסך/היקפיים)
+// ונכנסים ל-Deep Sleep קבוע — רק לחיצה על כפתור ההפעלה תוציא מכאן.
+void shutDownForLowBattery() {
+  allOutputsOff();
+  if (oledAvailable) {
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setCursor(0, 0);
+    display.println("Battery low");
+    display.println("Shutting down...");
+    display.display();
+    delay(1500);
+  }
+  digitalWrite(MOSFET_PIN, LOW);
+  enterDeepSleep();
+}
+
+// נכנסים ל-Deep Sleep. מקור ההתעוררות היחיד הוא כפתור ההפעלה (GPIO15) —
+// ESP32 מכבה את רדיו ה-BLE לגמרי ב-Deep Sleep, כך שאי אפשר "להתעורר" מחיבור BLE
+// נכנס; אפשר רק להישאר ערים כל עוד יש חיבור פעיל, ואז להירדם כשמתנתקים ואין פעילות.
+void enterDeepSleep() {
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)POWER_BUTTON_PIN, 0);  // התעוררות ב-LOW
+  esp_deep_sleep_start();
+}
+
 // ─────────────────────────────────────────
 void setup() {
+  pinMode(POWER_BUTTON_PIN, INPUT_PULLUP);
+  pinMode(MOSFET_PIN, OUTPUT);
+  digitalWrite(MOSFET_PIN, HIGH);  // מפעילים מתח להיקפיים (מסך וכו') בעלייה
+
   ledcAttach(VIBRATION_PIN, VIBRATION_PWM_FREQ_HZ, VIBRATION_PWM_RESOLUTION);
-  pinMode(LED_RED_PIN, OUTPUT);
-  pinMode(LED_BLUE_PIN, OUTPUT);
-  pinMode(LED_GREEN_PIN, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
   allOutputsOff();
 
-  Wire.begin();  // SDA/SCL הסטנדרטיים של הבורד (בד"כ GPIO 21/22)
+  Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
   oledAvailable = display.begin(SSD1306_SWITCHCAPVCC, OLED_I2C_ADDR);
   if (oledAvailable) {
     lastBatteryPercent = readBatteryPercent();
@@ -280,6 +334,8 @@ void setup() {
   advertising->addServiceUUID(SERVICE_UUID);
   advertising->setScanResponse(true);
   BLEDevice::startAdvertising();
+
+  lastActivityMs = millis();
 }
 
 unsigned long lastBatteryUpdate = 0;
@@ -287,12 +343,26 @@ unsigned long lastBatteryUpdate = 0;
 void loop() {
   updateActivePattern();
 
-  if (deviceConnected && millis() - lastBatteryUpdate > 30000) {
+  if (millis() - lastBatteryUpdate > 30000) {
+    uint16_t mv = readBatteryMv();
+    if (mv <= BATTERY_CUTOFF_MV) {
+      shutDownForLowBattery();  // לא חוזר מכאן — נכנס ל-Deep Sleep
+    }
+
     uint8_t percent = readBatteryPercent();
     lastBatteryPercent = percent;
-    pBatteryChar->setValue(&percent, 1);
-    pBatteryChar->notify();
+    if (deviceConnected) {
+      pBatteryChar->setValue(&percent, 1);
+      pBatteryChar->notify();
+    }
     if (activePattern == PATTERN_NONE) showIdleScreen();
     lastBatteryUpdate = millis();
+  }
+
+  // אם אין חיבור BLE ואין דפוס פעיל מספיק זמן — נכנסים ל-Deep Sleep לחיסכון בסוללה.
+  // לחיצה על כפתור ההפעלה (GPIO15) תוציא מהשינה ותריץ את setup() מההתחלה.
+  if (!deviceConnected && activePattern == PATTERN_NONE &&
+      millis() - lastActivityMs > IDLE_SLEEP_TIMEOUT_MS) {
+    enterDeepSleep();
   }
 }
