@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmartBracelet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { overflow-x: hidden; max-width: 100%; }
+body { font-family: 'Heebo', 'Inter', sans-serif; background: #010101; color: #fff; line-height: 1.6; }
+img { max-width: 100%; }
+
+:root {
+  --accent: #2C5C88;
+  --accent-light: #4d85b8;
+  --card-bg: #111418;
+  --card-border: rgba(255,255,255,0.08);
+  --muted: #9ca3af;
+  --text: #e5e7eb;
+}
+
+/* Background */
+#bg-container { position: fixed; inset: 0; z-index: -10; background: radial-gradient(ellipse at 50% 30%, #132233 0%, #050608 55%, #010101 100%); }
+#bg-container .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); }
+#particles-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
+
+/* Nav */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 2.5rem; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); }
+nav .logo { font-weight: 700; font-size: 1.25rem; color: #fff; letter-spacing: -0.025em; }
+nav .nav-links { display: flex; align-items: center; gap: 1.5rem; }
+nav .nav-links a { font-size: 0.875rem; color: #d1d5db; text-decoration: none; transition: color 0.2s; }
+nav .nav-links a:hover { color: #fff; }
+nav .social a { color: #d1d5db; transition: color 0.2s; }
+nav .social a:hover { color: #fff; }
+nav .social svg { width: 1.25rem; height: 1.25rem; }
+
+/* Hero */
+#hero { position: relative; height: 100vh; width: 100%; display: flex; flex-direction: column; }
+#hero .gradient-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent, transparent); }
+#hero .content { position: relative; z-index: 10; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; text-align: center; padding: 0 1.5rem 6rem; }
+#hero .subtitle { font-size: 0.875rem; color: #9ca3af; margin-bottom: 1rem; letter-spacing: 0.05em; }
+#hero h1 { font-size: clamp(1.5rem, 5vw, 3.75rem); font-weight: 600; line-height: 1.25; max-width: 48rem; }
+#hero h1 .underlined { position: relative; display: inline-block; }
+#hero h1 .underlined .line { position: absolute; bottom: 0.25rem; right: 0; width: 100%; height: 10px; background: var(--accent); border-radius: 2px; }
+#hero h1 .underlined span { position: relative; }
+#hero .ctas { display: flex; align-items: center; gap: 1rem; margin-top: 2.5rem; flex-wrap: wrap; justify-content: center; }
+#hero .code-box { display: flex; align-items: center; gap: 0.5rem; background: #1a1a1a; border: 1px solid rgba(55,65,81,0.5); border-radius: 0.5rem; padding: 0.875rem 2rem; }
+#hero .code-box .prompt { color: var(--accent-light); font-family: monospace; font-size: 0.875rem; }
+#hero .code-box code { font-size: 0.875rem; color: #e5e7eb; font-family: monospace; direction: ltr; }
+#hero .cta-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: var(--accent); color: #fff; font-weight: 500; border-radius: 0.5rem; padding: 0.875rem 2rem; font-size: 0.875rem; text-decoration: none; transition: background 0.2s; }
+#hero .cta-btn:hover { background: var(--accent-light); }
+#hero .bounce-arrow { position: relative; z-index: 10; display: flex; justify-content: center; padding-bottom: 2rem; }
+#hero .bounce-arrow svg { width: 1.5rem; height: 1.5rem; color: #6b7280; animation: bounce 1s infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-25%); } }
+
+/* Fixed highlight cards */
+#fixed-cards { position: fixed; bottom: 0; left: 0; right: 0; z-index: 4; padding: 2rem 2.5rem; opacity: 0; pointer-events: none; }
+#fixed-cards .grid { max-width: 72rem; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; }
+#fixed-cards .card h3 { font-size: 1.5rem; font-weight: 700; color: #fff; margin-bottom: 1rem; }
+#fixed-cards .card p { color: #d1d5db; font-size: 0.875rem; }
+
+/* Generic reveal-on-scroll sections */
+#content { position: relative; z-index: 2; }
+.section-block { position: relative; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 4rem 1.5rem; }
+.section-block .inner { width: 100%; max-width: 60rem; }
+.reveal { opacity: 0; transform: translateY(32px); filter: blur(8px); transition: opacity 1s ease-out, transform 1s ease-out, filter 1s ease-out; }
+.reveal.visible { opacity: 1; transform: translateY(0); filter: blur(0); }
+
+.section-block h2 { font-size: clamp(1.5rem, 4vw, 2.25rem); font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; }
+.section-block > .inner > p.lead { color: var(--text); font-size: 1.05rem; max-width: 42rem; }
+.section-block .dark-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 1rem; padding: 1.75rem 2rem; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.feature-list { list-style: none; }
+.feature-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--card-border); display: flex; gap: 0.6rem; color: var(--text); font-size: 0.95rem; }
+.feature-list li:last-child { border-bottom: none; }
+.feature-list h3 { color: var(--accent-light); margin-bottom: 0.75rem; font-size: 1.1rem; }
+
+.badge { display: inline-block; background: rgba(44,92,136,0.18); color: #8fc2ee; font-size: 0.85rem; font-weight: 600; padding: 5px 14px; border-radius: 20px; margin: 4px 6px 4px 0; }
+
+.flow { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 12px; margin: 1.5rem 0; text-align: center; }
+.flow .step { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px 18px; min-width: 130px; font-weight: 600; color: var(--accent-light); animation: stepPulse 3.2s ease-in-out infinite; }
+.flow .arrow { font-size: 1.4rem; color: var(--muted); display: inline-block; animation: arrowPulse 3.2s ease-in-out infinite; }
+@keyframes stepPulse { 0%, 75%, 100% { background: var(--card-bg); box-shadow: none; transform: scale(1); } 8% { background: #1d2f42; box-shadow: 0 0 0 6px rgba(44,92,136,0.25); transform: scale(1.06); } }
+@keyframes arrowPulse { 0%, 75%, 100% { color: var(--muted); transform: scale(1); } 8% { color: var(--accent-light); transform: scale(1.4); } }
+
+.arch { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 1.5rem 0; }
+.arch-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; width: 100%; }
+.arch-box { background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 12px; padding: 12px 16px; min-width: 150px; text-align: center; font-size: 0.9rem; color: var(--text); }
+.arch-box strong { display: block; color: var(--accent-light); margin-bottom: 4px; }
+.arch-box.central { border-color: var(--accent); }
+.arch-box.peripheral { border-color: #c9a35a; background: #1a1610; }
+.arch-box.peripheral strong { color: #d9b35e; }
+.arch-down { font-size: 1.3rem; color: var(--muted); }
+@media (max-width: 600px) { .arch-box { min-width: 0; width: 100%; } .arch-row { flex-direction: column; align-items: stretch; } }
+
+.table-wrap { overflow-x: auto; margin: 1rem 0; -webkit-overflow-scrolling: touch; }
+table.compare { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+table.compare th, table.compare td { border: 1px solid var(--card-border); padding: 10px 12px; text-align: center; color: var(--text); }
+table.compare th { background: rgba(44,92,136,0.15); color: #8fc2ee; }
+table.compare td:first-child { text-align: right; font-weight: 600; }
+.check { color: #4ade80; font-weight: 700; }
+.cross { color: #f87171; font-weight: 700; }
+.cost-note { font-size: 0.85rem; color: var(--muted); margin-top: 0.6rem; }
+
+.stage-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+@media (max-width: 720px) { .stage-row { flex-direction: column; } }
+.stage-box { flex: 1; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 1.25rem 1.4rem; min-width: 150px; }
+.stage-box h3 { color: var(--accent-light); margin-bottom: 0.5rem; }
+.stage-box.current { border-color: var(--accent); }
+.stage-box.next { border-style: dashed; }
+.tag-status { display: inline-block; font-size: 0.8rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 10px; }
+.tag-status.current { background: rgba(74,222,128,0.15); color: #4ade80; }
+.tag-status.next { background: rgba(250,204,21,0.15); color: #facc15; }
+
+.screenshot-wrap { text-align: center; }
+.screenshot-wrap img { max-width: 280px; border-radius: 24px; box-shadow: 0 10px 35px rgba(0,0,0,0.5); border: 1px solid var(--card-border); }
+
+footer { text-align: center; color: var(--muted); padding: 3rem 1.5rem; font-size: 0.9rem; position: relative; z-index: 2; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  nav { padding: 1rem 1.5rem; }
+  nav .nav-links { display: none; }
+  #hero .content { padding-bottom: 5rem; }
+  #hero h1 { font-size: 1.5rem; }
+  #hero .ctas { flex-direction: column; }
+  #fixed-cards .grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  #fixed-cards { padding: 1.5rem 1rem; }
+  .section-block { padding: 3rem 1.25rem; }
+  .section-block .dark-card { padding: 1.25rem 1.4rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="bg-container"><div class="overlay"></div></div>
+<canvas id="particles-canvas"></canvas>
+
+<!-- Fixed highlight cards (revealed mid-scroll) -->
+<div id="fixed-cards">
+  <div class="grid">
+    <div class="card">
+      <h3>התראת אזעקה</h3>
+      <p>חיבור ישיר ל-API של פיקוד העורף — כשנשמעת אזעקה ביישוב שלך, הצמיד מרגיש את זה איתך: רטט, אור ומסך, בזמן אמת.</p>
+    </div>
+    <div class="card">
+      <h3>חיבור BLE מאובטח</h3>
+      <p>הצמיד וה-ESP32 מתחברים לטלפון ב-Bluetooth Low Energy עם bonding — מתחבר אוטומטית בכל פעם, בלי להזדקק לאינטרנט מתמיד.</p>
+    </div>
+    <div class="card">
+      <h3>מותאם אישית</h3>
+      <p>עוצמת רטט מתכווננת, סינון התראות לפי יישוב, והיסטוריית אירועים מלאה — הצמיד מסתגל אליך, לא להפך.</p>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <div style="display:flex;align-items:center;gap:2rem;">
+    <span class="logo">SmartBracelet</span>
+    <div class="nav-links">
+      <a href="../index.html">המצגת המקורית</a>
+      <a href="https://github.com/raz352004-sudo/SmartBracelet" target="_blank">קוד המקור</a>
+    </div>
+  </div>
+  <div class="social">
+    <a href="https://github.com/raz352004-sudo/SmartBracelet" target="_blank" aria-label="GitHub">
+      <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+    </a>
+  </div>
+</nav>
+
+<div id="content">
+
+  <section id="hero">
+    <div class="gradient-overlay"></div>
+    <div class="content">
+      <p class="subtitle">המטרה שלנו:</p>
+      <h1>
+        צמיד אחד. כל ההתראות החשובות
+        <span class="underlined"><span class="line"></span><span>בזמן אמת</span></span>
+        בחיים שלך.
+      </h1>
+      <div class="ctas">
+        <div class="code-box"><span class="prompt">&gt;</span><code>git clone SmartBracelet</code></div>
+        <a href="https://github.com/raz352004-sudo/SmartBracelet" target="_blank" class="cta-btn">לקוד המקור <span>&larr;</span></a>
+      </div>
+    </div>
+    <div class="bounce-arrow">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+    </div>
+  </section>
+
+  <div style="height:150vh;"></div>
+  <div id="cards-trigger" style="height:200vh;"></div>
+  <div style="height:60vh;"></div>
+
+  <!-- הבעיה -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>🚨 הבעיה</h2>
+      <p class="lead">
+        אנשים חירשים וכבדי שמיעה לא מודעים לאירועים קריטיים שקורים בסביבתם —
+        אזעקת פיקוד העורף, פעמון דלת, או התראת גלאי פריצה. כל אלה מבוססים על
+        צליל, ולכן חוסמים אותם באופן מלא מאוכלוסייה שלא שומעת.
+      </p>
+    </div>
+  </section>
+
+  <!-- הפתרון -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>💡 הפתרון</h2>
+      <p class="lead">
+        צמיד חכם שנלבש על פרק היד ומתריע באופן מיידי על כל אחד מהאירועים —
+        באמצעות <strong>רטט</strong>, <strong>LED</strong> ו<strong>מסך</strong>, כל אירוע עם דפוס התראה משלו, כך
+        שהמשתמש יכול להבחין בקלות בסוג האירוע מבלי לראות או לשמוע את המקור עצמו.
+      </p>
+    </div>
+  </section>
+
+  <!-- הטכנולוגיה -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>⚙️ הטכנולוגיה</h2>
+      <div class="grid-2">
+        <div class="dark-card">
+          <ul class="feature-list">
+            <li><h3>הצמיד</h3></li>
+            <li>🧠 בקר ESP32 (Bluetooth Low Energy)</li>
+            <li>🔋 סוללה נטענת</li>
+            <li>🖥️ מסך OLED להצגת פרטי האירוע</li>
+            <li>💡 LED לאינדיקציה ויזואלית</li>
+            <li>📳 מנוע רטט</li>
+          </ul>
+        </div>
+        <div class="dark-card">
+          <ul class="feature-list">
+            <li><h3>האפליקציה</h3></li>
+            <li>📱 אפליקציית Flutter — אנדרואיד ו-iPhone, מאותו קוד</li>
+            <li>🔗 התחברות לצמיד דרך BLE</li>
+            <li>📡 חיבור מובנה ל-API של פיקוד העורף</li>
+            <li>🔔 כפתורי בדיקה ידניים לדלת ולגלאי פריצה</li>
+            <li>📜 היסטוריית התראות + הגדרות התאמה אישית</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="flow">
+        <div class="step" style="animation-delay:0s">📡 אירוע<br>(אזעקה / דלת / פריצה)</div>
+        <div class="arrow" style="animation-delay:0.4s">←</div>
+        <div class="step" style="animation-delay:0.8s">📱 אפליקציה</div>
+        <div class="arrow" style="animation-delay:1.2s">←</div>
+        <div class="step" style="animation-delay:1.6s">🔗 BLE</div>
+        <div class="arrow" style="animation-delay:2.0s">←</div>
+        <div class="step" style="animation-delay:2.4s">⌚ צמיד<br>(רטט + LED + מסך)</div>
+      </div>
+
+      <div>
+        <span class="badge">Flutter</span>
+        <span class="badge">Dart</span>
+        <span class="badge">ESP32</span>
+        <span class="badge">BLE</span>
+        <span class="badge">OLED</span>
+        <span class="badge">iOS</span>
+        <span class="badge">Android</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ארכיטקטורה -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>🏗️ ארכיטקטורת המערכת</h2>
+      <div class="arch">
+        <div class="arch-row">
+          <div class="arch-box">📡 API פיקוד העורף</div>
+          <div class="arch-box">🔔 כפתורי בדיקה ידניים<br>(דלת / פריצה)</div>
+        </div>
+        <div class="arch-down">↓</div>
+        <div class="arch-row">
+          <div class="arch-box central" style="min-width:260px;">
+            <strong>📱 אפליקציית Flutter (BLE Central)</strong>
+            פולינג התראות · היסטוריה מקומית · הגדרות (עוצמת רטט, סוגי התראה)
+          </div>
+        </div>
+        <div class="arch-down">↓ BLE ↓</div>
+        <div class="arch-row">
+          <div class="arch-box peripheral" style="min-width:260px;">
+            <strong>⌚ ESP32 (BLE Peripheral)</strong>
+            קליטת קוד התראה · בקרת דפוסים · PWM לעוצמת רטט
+          </div>
+        </div>
+        <div class="arch-down">↓</div>
+        <div class="arch-row">
+          <div class="arch-box">📳 מנוע רטט</div>
+          <div class="arch-box">💡 LED</div>
+          <div class="arch-box">🖥️ מסך OLED</div>
+          <div class="arch-box">🔋 סוללה + טעינה</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- השוואה לשוק -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>📊 השוואה לפתרונות קיימים בשוק</h2>
+      <div class="table-wrap">
+      <table class="compare">
+        <thead>
+          <tr>
+            <th>קריטריון</th>
+            <th>SmartBracelet</th>
+            <th>שעון חכם רגיל<br><span style="font-weight:400">(Apple Watch / Fitbit)</span></th>
+            <th>פעמון מהבהב ייעודי<br><span style="font-weight:400">לחירשים</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>חיבור ישיר ל-API פיקוד העורף</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>קוד התראה ייעודי לכל סוג אירוע</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span> (וייברציה גנרית)</td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>גלאי פריצה / פעמון דלת מובנה</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="check">✓</span> (פעמון בלבד)</td>
+          </tr>
+          <tr>
+            <td>מסך תצוגה ייעודי לאירוע</td>
+            <td><span class="check">✓</span> (OLED)</td>
+            <td><span class="check">✓</span> (כללי)</td>
+            <td><span class="cross">✗</span></td>
+          </tr>
+          <tr>
+            <td>מחיר משוער למשתמש</td>
+            <td><strong>~₪150–250</strong></td>
+            <td>₪800–₪3,000+</td>
+            <td>₪200–400</td>
+          </tr>
+          <tr>
+            <td>מותאם במיוחד לקהילת החירשים</td>
+            <td><span class="check">✓</span></td>
+            <td><span class="cross">✗</span></td>
+            <td><span class="check">✓</span> (חלקית)</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="cost-note">הערכת מחירים גסה להמחשה בלבד, מבוססת על מחירי שוק טיפוסיים.</p>
+    </div>
+  </section>
+
+  <!-- שוק יעד ומודל עסקי -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>🌍 שוק יעד ומודל עסקי</h2>
+      <div class="grid-2">
+        <div class="dark-card">
+          <ul class="feature-list">
+            <li><h3>שוק היעד</h3></li>
+            <li>👥 כ-700,000 חירשים וכבדי שמיעה בישראל</li>
+            <li>🤟 מתוכם כ-20,000 דוברי שפת הסימנים — האוכלוסייה שהכי נפגעת מאי-נגישות לאזעקות קוליות</li>
+            <li>🏫 מוסדות חינוך ודיור לחירשים כלקוחות פוטנציאליים בהיקף גדול</li>
+            <li>🌐 פוטנציאל הרחבה למדינות נוספות עם מערכות אזעקה ציבוריות (פיקוד אזרחי, התרעות חירום)</li>
+          </ul>
+        </div>
+        <div class="dark-card">
+          <ul class="feature-list">
+            <li><h3>מודל עסקי</h3></li>
+            <li>🛒 מכירה ישירה לצרכן (D2C) — אתר/חנות מקוונת</li>
+            <li>🤝 שיתופי פעולה עם עמותות וארגוני חירשים בישראל</li>
+            <li>🏛️ מכירה למוסדות (בתי ספר, מעונות דיור) בהיקפים</li>
+            <li>📋 בחינת סבסוד/השתתפות ממשרד הרווחה כ"אמצעי עזר"</li>
+            <li>🔄 הכנסה נוספת אפשרית: מנוי לתחזוקה ועדכוני תוכנה</li>
+          </ul>
+        </div>
+      </div>
+      <p class="cost-note">נתוני אוכלוסייה: הלשכה המרכזית לסטטיסטיקה (הלמ"ס), 2023.</p>
+    </div>
+  </section>
+
+  <!-- שלבי הפרויקט וציר זמן -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>🗺️ שלבי הפרויקט וציר זמן</h2>
+      <div class="stage-row">
+        <div class="stage-box current">
+          <span class="tag-status current">שלב נוכחי</span>
+          <h3>בניית פרוטוטייפ</h3>
+          <ul class="feature-list">
+            <li>🔌 סכמה חשמלית</li>
+            <li>🧩 תכנון PCB</li>
+            <li>💻 כתיבת קוד ESP32</li>
+          </ul>
+        </div>
+        <div class="stage-box next">
+          <span class="tag-status next">שלב הבא</span>
+          <h3>אפליקציה ועיצוב מוצר</h3>
+          <ul class="feature-list">
+            <li>📱 אפליקציית Flutter לאנדרואיד ואייפון</li>
+            <li>🎨 עיצוב מוצר סופי לצמיד</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="stage-row" style="margin-top:1.5rem;">
+        <div class="stage-box current" style="flex:1 1 150px;">
+          <span class="tag-status current">Q3 2026</span>
+          <h3 style="font-size:1rem;">סיום פרוטוטייפ</h3>
+          <p style="font-size:0.85rem; margin:0; color:var(--muted);">סכמה, PCB, קוד ESP32</p>
+        </div>
+        <div class="stage-box next" style="flex:1 1 150px;">
+          <span class="tag-status next">Q4 2026</span>
+          <h3 style="font-size:1rem;">אפליקציה + עיצוב</h3>
+          <p style="font-size:0.85rem; margin:0; color:var(--muted);">Flutter מלא, עיצוב תעשייתי</p>
+        </div>
+        <div class="stage-box next" style="flex:1 1 150px;">
+          <span class="tag-status next">Q1 2027</span>
+          <h3 style="font-size:1rem;">פיילוט</h3>
+          <p style="font-size:0.85rem; margin:0; color:var(--muted);">בדיקות עם קהילת החירשים</p>
+        </div>
+        <div class="stage-box next" style="flex:1 1 150px;">
+          <span class="tag-status next">Q2 2027</span>
+          <h3 style="font-size:1rem;">תקינה וייצור</h3>
+          <p style="font-size:0.85rem; margin:0; color:var(--muted);">CE/FCC, הכנת קו ייצור</p>
+        </div>
+        <div class="stage-box next" style="flex:1 1 150px;">
+          <span class="tag-status next">Q3 2027</span>
+          <h3 style="font-size:1rem;">השקה</h3>
+          <p style="font-size:0.85rem; margin:0; color:var(--muted);">השקה מסחרית ראשונית</p>
+        </div>
+      </div>
+      <p class="cost-note">לוח הזמנים משוער ואינדיקטיבי, ניתן להתאמה לפי קצב הגיוס וההתקדמות בפועל.</p>
+    </div>
+  </section>
+
+  <!-- תצוגה מקדימה -->
+  <section class="section-block">
+    <div class="inner reveal">
+      <h2>📲 תצוגה מקדימה של האפליקציה</h2>
+      <div class="screenshot-wrap">
+        <img src="../images/screenshot_home.png" alt="מסך הבית של אפליקציית SmartBracelet">
+        <p style="color:var(--muted); margin-top:14px;">מסך הבית של האפליקציה — סטטוס חיבור לצמיד וכפתורי בדיקה ידניים</p>
+      </div>
+    </div>
+  </section>
+
+  <div style="height:30vh;"></div>
+
+  <!-- סיום -->
+  <section id="section-three" class="section-block">
+    <div class="inner reveal">
+      <p style="color:var(--muted);">מציגים</p>
+      <h2 style="font-size:clamp(1.875rem, 6vw, 4.5rem); justify-content:center;">SmartBracelet</h2>
+    </div>
+  </section>
+
+</div>
+
+<footer>פרויקט SmartBracelet — הצעת ייעול לקהילת החירשים</footer>
+
+<script>
+(function() {
+  // ===================== PARTICLES =====================
+  const pCanvas = document.getElementById('particles-canvas');
+  const pCtx = pCanvas.getContext('2d');
+  let particles = [];
+
+  function resizeParticles() {
+    pCanvas.width = window.innerWidth;
+    pCanvas.height = window.innerHeight;
+    createParticles();
+  }
+
+  function createParticles() {
+    particles = [];
+    const count = Math.floor((pCanvas.width * pCanvas.height) / 12000);
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x: Math.random() * pCanvas.width,
+        y: Math.random() * pCanvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 1.5 + 0.5,
+        opacity: Math.random() * 0.6 + 0.2
+      });
+    }
+  }
+
+  function animateParticles() {
+    pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    for (const p of particles) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = pCanvas.width;
+      if (p.x > pCanvas.width) p.x = 0;
+      if (p.y < 0) p.y = pCanvas.height;
+      if (p.y > pCanvas.height) p.y = 0;
+      pCtx.beginPath();
+      pCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      pCtx.fillStyle = `rgba(255,255,255,${p.opacity})`;
+      pCtx.fill();
+    }
+    requestAnimationFrame(animateParticles);
+  }
+
+  resizeParticles();
+  window.addEventListener('resize', resizeParticles);
+  animateParticles();
+
+  // ===================== HERO FADE =====================
+  function updateHeroOpacity() {
+    const fade = Math.max(0, 1 - window.scrollY / (window.innerHeight * 0.3));
+    document.getElementById('hero').style.opacity = fade;
+  }
+  window.addEventListener('scroll', updateHeroOpacity, { passive: true });
+
+  // ===================== FIXED CARDS =====================
+  const fixedCards = document.getElementById('fixed-cards');
+  const cardsGrid = fixedCards.querySelector('.grid');
+
+  function tickCards() {
+    const trigger = document.getElementById('cards-trigger');
+    const rect = trigger.getBoundingClientRect();
+    const triggerTop = rect.top + window.scrollY;
+    const triggerHeight = rect.height;
+    const scrollY = window.scrollY;
+    const vh = window.innerHeight;
+
+    const start = triggerTop - vh * 0.5;
+    const end = triggerTop + triggerHeight - vh * 0.3;
+    const range = end - start;
+
+    let progress = range > 0 ? (scrollY - start) / range : 0;
+    progress = Math.max(0, Math.min(1, progress));
+
+    const isActive = scrollY >= start - vh * 0.2 && scrollY <= end + vh * 0.3;
+    const fadeIn = Math.min(1, Math.max(0, (scrollY - (start - vh * 0.2)) / (vh * 0.2)));
+    const fadeOut = Math.min(1, Math.max(0, (end + vh * 0.3 - scrollY) / (vh * 0.3)));
+    const containerOpacity = isActive ? Math.min(fadeIn, fadeOut) : 0;
+
+    fixedCards.style.opacity = containerOpacity;
+    fixedCards.style.pointerEvents = containerOpacity > 0.1 ? 'auto' : 'none';
+
+    const isMobile = window.innerWidth < 768;
+    const revealPct = progress * 130;
+    if (isMobile) {
+      cardsGrid.style.maskImage = `linear-gradient(to bottom, black ${revealPct}%, transparent ${revealPct + 20}%)`;
+      cardsGrid.style.webkitMaskImage = `linear-gradient(to bottom, black ${revealPct}%, transparent ${revealPct + 20}%)`;
+    } else {
+      cardsGrid.style.maskImage = `linear-gradient(to left, black ${revealPct}%, transparent ${revealPct + 15}%)`;
+      cardsGrid.style.webkitMaskImage = `linear-gradient(to left, black ${revealPct}%, transparent ${revealPct + 15}%)`;
+    }
+
+    requestAnimationFrame(tickCards);
+  }
+  requestAnimationFrame(tickCards);
+
+  // ===================== REVEAL-ON-SCROLL (all content sections) =====================
+  const revealEls = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+  revealEls.forEach((el) => observer.observe(el));
+})();
+</script>
+</body>
+</html>
